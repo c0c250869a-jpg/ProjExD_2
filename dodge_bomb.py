@@ -2,6 +2,7 @@ import os
 import random
 import sys
 import pygame as pg
+import time
 
 
 WIDTH, HEIGHT = 1100, 650
@@ -26,6 +27,35 @@ def check_bound(rct : pg.Rect) ->  tuple[bool, bool]:
     if rct.top < 0 or HEIGHT < rct.bottom: #縦方向判定
         tate = False
     return yoko, tate
+
+
+#3.飛ぶ方向に従ってこうかとん画像を切り替える
+def get_kk_img() -> dict[tuple[int, int], pg.surface]:
+    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    kk_imgs = {
+        (0, 0): kk_img,
+        (+5, 0): pg.transform.flip(kk_img, True, False),  
+        (-5, 0): kk_img,  
+        (0, -5): pg.transform.rotozoom(kk_img, -90, 1.0),  
+        (0, +5): pg.transform.rotozoom(kk_img, 90, 1.0),  #
+        (+5, -5): pg.transform.rotozoom(pg.transform.flip(kk_img, True, False), 45, 1.0),  
+        (+5, +5): pg.transform.rotozoom(pg.transform.flip(kk_img, True, False), -45, 1.0),  
+        (-5, -5): pg.transform.rotozoom(kk_img, -45, 1.0),  
+        (-5, +5): pg.transform.rotozoom(kk_img, 45, 1.0),  
+    }
+    return kk_imgs
+#ゲームオーバー
+def gameover(screen: pg.Surface) -> None:
+    black_img = pg.Surface((WIDTH, HEIGHT))
+    black_img.set_alpha(100)
+    fonto = pg.font.Font(None, 80)
+    txt = fonto.render("GameOver",True,(255, 255, 255))
+    kk_gameover_img = pg.image.load("fig/8.png")  
+    black_img.blit(txt, [400,200])
+    black_img.blit(kk_gameover_img, [700, 200])
+    screen.blit(black_img,[0, 0])
+    pg.display.update() 
+    time.sleep(5)
 
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
@@ -52,7 +82,7 @@ def main():
             if event.type == pg.QUIT: 
                 return
         if kk_rct.colliderect(bb_rct):
-            print("ゲームオーバー")
+            gameover(screen)
             return
         screen.blit(bg_img, [0, 0]) 
 
@@ -66,10 +96,17 @@ def main():
         #     sum_mv[0] -= 5
         # if key_lst[pg.K_RIGHT]:
         #     sum_mv[0] += 5
+
+        kk_imgs = get_kk_img()
+        kk_img = kk_imgs[(0,0)]    
+
         for key, mv in DELTA.items():
             if key_lst[key]:
                 sum_mv[0] += mv[0]  # 横方向の移動量
                 sum_mv[1] += mv[1]  # 縦方向の移動量
+        if tuple(sum_mv) in kk_imgs:
+            kk_img = kk_imgs[tuple(sum_mv)]
+
         kk_rct.move_ip(sum_mv)
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
